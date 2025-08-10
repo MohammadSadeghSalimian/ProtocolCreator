@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProtocolCreator.Core\ProtocolCreator.Core.csproj" />
+    <ProjectReference Include="..\ProtocolCreator.Infrastructures\ProtocolCreator.Infrastructures.csproj" />
+  </ItemGroup>
+
+</Project>
