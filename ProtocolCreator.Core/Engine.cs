@@ -1,35 +1,13 @@
 ﻿namespace ProtocolCreator.Core;
-public readonly struct DoublePair(double a, double b) : IEquatable<DoublePair>
-{
-    public double A { get; } = Math.Round(a, 6);
-    public double B { get; } = Math.Round(b, 6);
 
-    public bool Equals(DoublePair other) =>
-        Math.Abs(A - other.A) < 1e-7 && Math.Abs(B - other.B) < 1e-7;
-
-    public override bool Equals(object? obj) =>
-        obj is DoublePair other && Equals(other);
-
-    public override int GetHashCode() =>
-        HashCode.Combine(A, B);
-    public static bool operator ==(DoublePair left, DoublePair right)
-    {
-        return left.Equals(right);
-    }
-
-    public static bool operator !=(DoublePair left, DoublePair right)
-    {
-        return !(left == right);
-    }
-}
 public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformation info)
 {
-    private readonly List<Delta> _deltas = [];
-    public IReadOnlyList<Delta> Deltas => _deltas;
+    private readonly List<Delta> _allDeltas = [];
+    public IReadOnlyList<Delta> Deltas => _allDeltas;
     public IReadOnlyList<DriftSegment> DriftSegments { get; } = driftSegments;
-    private Dictionary<DoublePair, int> _repeatCounter = new();
-
-
+    private readonly Dictionary<DoublePair, int> _repeatCounter = new();
+    private readonly List<LineSegment> _lines = new List<LineSegment>(driftSegments.Count);
+    public IReadOnlyList<LineSegment> Lines => _lines;
 
     public AnalysisInformation Info { get; } = info;
 
@@ -45,6 +23,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
         _repeatCounter[dd] = 1;
         return 1;
     }
+
     public void Calculate()
     {
         double positive = 0;
@@ -61,8 +40,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
             var n = deltaValues.Length;
             var deltas = new Delta[n];
             (positive, negative) = item.GetPeaks(positive, negative);
-            var elongationA = currentElongation;
-
+            
             for (int i = 0; i < n; i++)
             {
                 var a = deltaValues[i];
@@ -72,16 +50,15 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                 var rebarCondition = deltaDrift.GetRebarCondition(dy);
                 var depC = Info.Coefficients.GetCurrentDepthCoefficient(dir, rebarCondition);
                 var repeat = GetRepat(a, b);
-                var eccentricity = Extensions.GetEccentricity(dEff, depC);
                 var slope = Extensions.GetSlopeOfElongationLine(repeat);
-                var sec = new SectionCondition(rebarCondition, eccentricity, depC, repeat, slope);
-
                 var residual = (dir == Direction.Positive) ? residualElongations.Positive : residualElongations.Negative; //Coeff*D*dy
                 double deltaE = 0;
                 double startE = 0;
                 double endE = 0;
+                double eccentricity = 0;
                 if (item.LoadingPhase == LoadingPhase.Loading)
                 {
+                     eccentricity = Extensions.GetEccentricity(dEff, depC);
                     deltaE = slope * eccentricity * Math.Abs(step);
                     startE = currentElongation;
                     endE = startE + deltaE;
@@ -96,29 +73,24 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                     endE = startE + deltaE;
                     if (endE >= destination || Math.Abs(endE - destination) < 1e-6)
                     {
-
+                        eccentricity = Extensions.GetEccentricity(dEff, depC);
                     }
                     else
                     {
                         deltaE = 0;
                         endE = destination;
+                        eccentricity = ecrElastic;
                     }
-
-
-
-
                 }
+                var sec = new SectionCondition(rebarCondition, eccentricity, depC, repeat, slope);
                 currentElongation += deltaE;
-                var elongation = new DeltaElongation();
-
-                deltas[i] = new Delta(i, deltaDrift, elongation, sec);
-
-
-
+                var elongation = new DeltaElongation(startE,endE,dir,item.LoadingPhase);
+                var delta = new Delta(i, deltaDrift, elongation, sec);
+                deltas[i]=delta;
+                this._allDeltas.Add(delta);
             }
             var ls = new LineSegment(item, deltas);
-
-            var lineSegment = new LineSegment(item);
+            _lines.Add(ls);
 
         }
     }
