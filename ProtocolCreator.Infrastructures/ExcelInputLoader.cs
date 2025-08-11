@@ -47,12 +47,12 @@ namespace ProtocolCreator.Infrastructures
             ArgumentNullException.ThrowIfNull(_workbook);
             var worksheet = _workbook.Worksheet("Information");
             var rows = worksheet.RowsUsed().ToArray();
-            var rebarYieldDrift = rows[1].Cell(2).GetValue<double>();
-            var effectiveDepth = rows[2].Cell(2).GetValue<double>();
-            var elasticPositive = rows[3].Cell(2).GetValue<double>();
-            var elasticNegative = rows[4].Cell(2).GetValue<double>();
-            var plasticPositive = rows[5].Cell(2).GetValue<double>();
-            var plasticNegative = rows[6].Cell(2).GetValue<double>();
+            var rebarYieldDrift = rows[0].Cell(2).GetValue<double>();
+            var effectiveDepth = rows[1].Cell(2).GetValue<double>();
+            var elasticPositive = rows[2].Cell(2).GetValue<double>();
+            var elasticNegative = rows[3].Cell(2).GetValue<double>();
+            var plasticPositive = rows[4].Cell(2).GetValue<double>();
+            var plasticNegative = rows[5].Cell(2).GetValue<double>();
 
             var coefficients = new CoefficientContainer(elasticPositive, elasticNegative, plasticPositive, plasticNegative);
             var aa = new AnalysisInformation(rebarYieldDrift, effectiveDepth, coefficients);

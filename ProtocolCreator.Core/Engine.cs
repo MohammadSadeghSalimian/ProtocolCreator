@@ -11,7 +11,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
 
     public AnalysisInformation Info { get; } = info;
 
-    private int GetRepat(double a, double b)
+    private int GetRepeat(double a, double b)
     {
         var dd = new DoublePair(a, b);
         if (_repeatCounter.TryGetValue(dd, out var count))
@@ -36,7 +36,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
         foreach (var item in DriftSegments)
         {
             var step = item.GetSignedStep();
-            var deltaValues = MathExtension.Arrange(item.Start, item.End, item.UnsignedStep);
+            var deltaValues = MathExtension.Arrange(item.Start, item.End, step);
             var n = deltaValues.Length;
             var deltas = new Delta[n];
             (positive, negative) = item.GetPeaks(positive, negative);
@@ -49,7 +49,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                 var dir = deltaDrift.GetDirection();
                 var rebarCondition = deltaDrift.GetRebarCondition(dy);
                 var depC = Info.Coefficients.GetCurrentDepthCoefficient(dir, rebarCondition);
-                var repeat = GetRepat(a, b);
+                var repeat = GetRepeat(a, b);
                 var slope = Extensions.GetSlopeOfElongationLine(repeat);
                 var residual = (dir == Direction.Positive) ? residualElongations.Positive : residualElongations.Negative; //Coeff*D*dy
                 double deltaE = 0;
