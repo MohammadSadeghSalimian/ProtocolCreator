@@ -1,48 +1,88 @@
 ﻿namespace ProtocolCreator.Core;
 
 
-public class DestinationFinder
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+/// <summary>
+/// Represents a traffic counter for traversals over intervals.
+/// Tracks how many times each interval is traversed and provides segment counts.
+/// </summary>
+public class IntervalTraffic
 {
-    private double[] _drifts = new double[4];
+    /// <summary>
+    /// Stores the difference array for interval traversal counts.
+    /// Key: position, Value: delta count at that position.
+    /// </summary>
+    private readonly SortedDictionary<double, int> _diff = new();
 
-    public double Dy { get;private set; }
-
-    public double Peak { get; private set; }
-
-    public bool IsYielded { get; private set; }
-
-    public void MakeItYield()
+    /// <summary>
+    /// Adds a traversal from point <paramref name="a"/> to <paramref name="b"/>.
+    /// Increments the count for the interval [min(a, b), max(a, b)).
+    /// </summary>
+    /// <param name="a">Start point of traversal.</param>
+    /// <param name="b">End point of traversal.</param>
+    public void AddTraversal(double a, double b)
     {
-        IsYielded= true;
+        if (Math.Abs(a - b) < 1e-6) return;
+        var lo = Math.Min(a, b);
+        var hi = Math.Max(a, b);
+        AddToDiff(lo, +1);
+        AddToDiff(hi, -1);
     }
 
-    private double GetDestination(double current, double destination)
+    /// <summary>
+    /// Updates the difference array at the specified <paramref name="key"/> by <paramref name="delta"/>.
+    /// Removes the entry if the resulting value is zero.
+    /// </summary>
+    /// <param name="key">The position to update.</param>
+    /// <param name="delta">The change in count.</param>
+    private void AddToDiff(double key, int delta)
     {
-        for (int i = 0; i < 4; i++)
+        if (_diff.TryGetValue(key, out var cur))
+            _diff[key] = cur + delta;
+        else
+            _diff[key] = delta;
+
+        if (_diff[key] == 0) _diff.Remove(key);
+    }
+
+    /// <summary>
+    /// Enumerates the segments with their start, end, and traversal count.
+    /// </summary>
+    /// <returns>
+    /// A sequence of tuples containing the start, end, and count for each segment.
+    /// </returns>
+    public IEnumerable<(double Start, double End, int Count)> GetSegments()
+    {
+        if (_diff.Count == 0) yield break;
+
+        var run = 0;
+        double? prev = null;
+
+        foreach (var kv in _diff)
         {
-            if (current >= _drifts[i] && destination <= _drifts[i])
-            {
-                
-            }
+            var x = kv.Key;
+            if (prev.HasValue && run != 0 && Math.Abs(x - prev.Value) > 1e-6)
+                yield return (prev.Value, x, run);
+
+            run += kv.Value;
+            prev = x;
         }
     }
 
-    public double GetDestination(double absoluteCurrentValue, double proposedDestination, CycleState cycleState,out double slope)
-    {
-        if (proposedDestination<=Dy && !IsYielded)
-        {
-            slope = 1;
-            return proposedDestination;
-        }
-        if (proposedDestination > Dy)
-        {
-            if (absoluteCurrentValue<Dy)
-            {
-                return Dy;
-            }
-        }
-    }
+    /// <summary>
+    /// Returns a string representation of the segments and their counts.
+    /// </summary>
+    /// <returns>
+    /// A comma-separated list of segments in the format: [start..end):count
+    /// </returns>
+    public override string ToString()
+        => string.Join(", ", GetSegments().Select(s => $"[{s.Start}..{s.End}):{s.Count}"));
 }
+
+
 
 
 public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformation info)
@@ -86,7 +126,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
             var deltas = new Delta[n];
             (positive, negative) = item.GetPeaks(positive, negative);
 
-            for (int i = 0; i < n; i++)
+            for (var i = 0; i < n; i++)
             {
                 var a = deltaValues[i];
                 var b = a + step;
@@ -140,17 +180,15 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
         }
     }
 
-    public (double destination, double k) GetDestination()
-    {
-
-    }
+  
     public void Calculate2()
     {
+        var travelCounter= new IntervalTraffic();
         double peakPositive = 0;
         double peakNegative = 0;
-        double dy = Info.RebarYieldDrift;
-        double dEff = Info.EffectiveDepth;
-
+        var dy = Info.RebarYieldDrift;
+        var dEff = Info.EffectiveDepth;
+        bool experiencedYield=false;
         double currentElongation = 0;
         double currentDrift = 0;
 
@@ -169,17 +207,25 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                 {
                     case CycleState.PositiveLoading:
 
-                        if (currentDrift < dy && peakPositive < dy && driftDestination<dy)
+                        if (currentDrift < dy && peakPositive < dy && driftDestination<=dy)
                         {
                             driftDestination = item.End;
                             var deltaD = driftDestination - currentDrift;
                             deltaE = deltaD * dEff * co.PositiveElastic;
+                            break;
+                        }
+                        if (currentDrift < dy && peakPositive < dy && driftDestination > dy)
+                        {
+                            driftDestination = dy;
+                            var deltaD = driftDestination - currentDrift;
+                            deltaE = deltaD * dEff * co.PositiveElastic;
+                            break;
                         }
                         else
                         {
-                            throw new InvalidOperationException("The parameters are not in range")
+                            throw new InvalidOperationException("The parameters are not in range");
                         }
-                        break;
+                       
                     case CycleState.PositiveUnloading:
                         break;
                     case CycleState.NegativeLoading:
@@ -202,7 +248,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
             var deltas = new Delta[n];
             (peakPositive, peakNegative) = item.GetPeaks(peakPositive, peakNegative);
 
-            for (int i = 0; i < n; i++)
+            for (var i = 0; i < n; i++)
             {
                 var a = deltaValues[i];
                 var b = a + step;
