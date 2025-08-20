@@ -31,11 +31,12 @@ namespace ProtocolCreator.Infrastructures
                 // Read values from columns: ID (int), Start (double), End (double), Step (double)
                 // ID is not used in DriftSegment constructor, so we just read and ignore it
                 var id = row.Cell(1).GetValue<int>();
+                double cycle = Math.Round(id / 4.0f, 2);
                 var start = row.Cell(2).GetValue<double>();
                 var end = row.Cell(3).GetValue<double>();
-                var step = row.Cell(4).GetValue<double>();
+              
 
-                driftSegments.Add(new DriftSegment(start, end, step));
+                driftSegments.Add(new DriftSegment(cycle,start, end));
             }
 
             return driftSegments;

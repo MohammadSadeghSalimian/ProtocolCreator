@@ -1,4 +1,5 @@
-﻿using ProtocolCreator.Core;
+﻿using System.Diagnostics;
+using ProtocolCreator.Core;
 using ProtocolCreator.Infrastructures;
 
 namespace ProtocolCreator.ConsoleApp
@@ -37,6 +38,7 @@ namespace ProtocolCreator.ConsoleApp
 
         private static void CreateElongationFile()
         {
+           
             Console.WriteLine("Drift protocol builder");
             Console.WriteLine("This program calculates drift segments and saves results to an Excel file.");
             Console.WriteLine("Make sure you have 'DriftSegments.xlsx' in the current directory.");
@@ -57,9 +59,14 @@ namespace ProtocolCreator.ConsoleApp
             
                 var excelSaver = new ExcelResultSaver();
                 var outputPath = Path.Combine(Environment.CurrentDirectory, "Results.xlsx");
-                var downSampledData = engine.Deltas.Downsample(x => x.Id, 1e-6,1,
-                    x => x.Drift.End, x => x.Elongation.End);
-                excelSaver.Save(new FileInfo(outputPath), downSampledData);
+                var outputFile = new FileInfo(outputPath);
+                excelSaver.Save(outputFile, engine.Deltas);
+                ArgumentNullException.ThrowIfNull(outputFile.Directory);
+                var p = new ProcessStartInfo(outputFile.Directory.FullName)
+                {
+                    UseShellExecute = true,
+                };
+                Process.Start(p);
             }
             catch (Exception e)
             {
@@ -67,6 +74,7 @@ namespace ProtocolCreator.ConsoleApp
                 return;
             }
             Console.WriteLine("Results saved to 'Results.xlsx'.");
+            
             Console.WriteLine("Press any key to exit...");
         }
 

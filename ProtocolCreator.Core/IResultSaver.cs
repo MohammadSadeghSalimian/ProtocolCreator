@@ -2,5 +2,5 @@
 
 public interface IResultSaver
 {
-    void Save(FileInfo file, IReadOnlyList<Delta> deltas);
+    void Save(FileInfo file, IReadOnlyList<DeData> deltas);
 }

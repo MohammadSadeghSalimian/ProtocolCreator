@@ -1,6 +1,6 @@
 ﻿namespace ProtocolCreator.Core;
 
-public class SectionCondition(RebarCondition rebarCondition, double eccentricity, double depthCoefficient, int repeat,double k)
+public class SectionCondition(RebarCondition rebarCondition,bool isYield, double eccentricity, double depthCoefficient, int repeat,double k)
 {
     public RebarCondition RebarCondition { get; } = rebarCondition;
     public double Eccentricity { get; } = eccentricity;
@@ -11,4 +11,5 @@ public class SectionCondition(RebarCondition rebarCondition, double eccentricity
 
     public int Repeat { get; } = repeat; // Number of repetitions of the drift. It means how many times the beam experienced this drift
 
+    public bool IsYield { get; }= isYield;
 }
