@@ -18,7 +18,7 @@ public class ExcelResultSaver:IResultSaver
         {
             "Id", "Start", "End", "Center", "Direction", "Loading Phase",
             "Start Elongation", "End Elongation", "Center Elongation",
-            "RebarCondition", "Eccentricity", "DepthCoefficient", "K", "Repeat"
+            "DeltaCondition", "Eccentricity", "DepthCoefficient", "K", "Repeat"
         };
         for (var h = 0; h < headers.Length; h++)
         {

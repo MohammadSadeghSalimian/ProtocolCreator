@@ -1,50 +1,6 @@
-﻿namespace ProtocolCreator.Core;
+﻿using System.ComponentModel;
 
-
-public class DestinationFinder
-{
-    private double[] _drifts = new double[4];
-
-    public double Dy { get;private set; }
-
-    public double Peak { get; private set; }
-
-    public bool IsYielded { get; private set; }
-
-    public void MakeItYield()
-    {
-        IsYielded= true;
-    }
-
-    private double GetDestination(double current, double destination)
-    {
-        for (int i = 0; i < 4; i++)
-        {
-            if (current >= _drifts[i] && destination <= _drifts[i])
-            {
-                
-            }
-        }
-    }
-
-    public double GetDestination(double absoluteCurrentValue, double proposedDestination, CycleState cycleState,out double slope)
-    {
-        if (proposedDestination<=Dy && !IsYielded)
-        {
-            slope = 1;
-            return proposedDestination;
-        }
-        if (proposedDestination > Dy)
-        {
-            if (absoluteCurrentValue<Dy)
-            {
-                return Dy;
-            }
-        }
-    }
-}
-
-
+namespace ProtocolCreator.Core;
 public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformation info)
 {
     private readonly List<Delta> _allDeltas = [];
@@ -53,9 +9,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
     private readonly Dictionary<DoublePair, int> _repeatCounter = new();
     private readonly List<LineSegment> _lines = new List<LineSegment>(driftSegments.Count);
     public IReadOnlyList<LineSegment> Lines => _lines;
-
     public AnalysisInformation Info { get; } = info;
-
     private int GetRepeat(double a, double b)
     {
         var dd = new DoublePair(a, b);
@@ -64,195 +18,272 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
             _repeatCounter[dd] = count + 1;
             return count + 1;
         }
-
         _repeatCounter[dd] = 1;
         return 1;
     }
-
     public void Calculate()
-    {
-        double positive = 0;
-        double negative = 0;
-        var dy = Info.RebarYieldDrift;
-        var dEff = Info.EffectiveDepth;
-        var residualElongations = Info.Coefficients.GetResidualElongation(dEff, dy);
-        var currentElongation = 0.0;
-        var co = Info.Coefficients;
-        foreach (var item in DriftSegments)
-        {
-            var step = item.GetSignedStep();
-            var deltaValues = MathExtension.Arrange(item.Start, item.End, step);
-            var n = deltaValues.Length;
-            var deltas = new Delta[n];
-            (positive, negative) = item.GetPeaks(positive, negative);
-
-            for (int i = 0; i < n; i++)
-            {
-                var a = deltaValues[i];
-                var b = a + step;
-                var deltaDrift = new DeltaDrift(a, b);
-                var dir = deltaDrift.GetDirection(); // positive or negative
-                var rebarCondition = deltaDrift.GetRebarCondition(dy); // elastic or plastic
-                var depC = Info.Coefficients.GetCurrentDepthCoefficient(dir, rebarCondition); // elastic or plastic
-                var repeat = GetRepeat(a, b); // the number of repeats in cycles
-                var slope = Extensions.GetSlopeOfElongationLine(repeat); //based on the repeat number
-                var residual = (dir == Direction.Positive) ? residualElongations.Positive : residualElongations.Negative; //Coeff*D*dy
-                double deltaE = 0;
-                double startE = 0;
-                double endE = 0;
-                double eccentricity = 0;
-                if (item.LoadingPhase == LoadingPhase.Loading)
-                {
-                    eccentricity = dEff * depC;
-                    deltaE = slope * eccentricity * Math.Abs(step);
-                    startE = currentElongation;
-                    endE = startE + deltaE;
-                }
-                else
-                {
-                    startE = currentElongation;
-                    var destination = currentElongation - residual;
-                    var cc = (dir == Direction.Positive) ? co.PositiveElastic : co.NegativeElastic;
-                    var ecrElastic = cc * dEff;
-                    deltaE = -slope * ecrElastic * Math.Abs(step);
-                    endE = startE + deltaE;
-                    if (endE >= destination || Math.Abs(endE - destination) < 1e-6)
-                    {
-                        eccentricity = Extensions.GetEccentricity(dEff, depC);
-                    }
-                    else
-                    {
-                        deltaE = 0;
-                        endE = destination;
-                        eccentricity = ecrElastic;
-                    }
-                }
-                var sec = new SectionCondition(rebarCondition, eccentricity, depC, repeat, slope);
-                currentElongation += deltaE;
-                var elongation = new DeltaElongation(startE, endE, dir, item.LoadingPhase);
-                var delta = new Delta(i, deltaDrift, elongation, sec);
-                deltas[i] = delta;
-                this._allDeltas.Add(delta);
-            }
-            var ls = new LineSegment(item, deltas);
-            _lines.Add(ls);
-
-        }
-    }
-
-    public (double destination, double k) GetDestination()
-    {
-
-    }
-    public void Calculate2()
     {
         double peakPositive = 0;
         double peakNegative = 0;
-        double dy = Info.RebarYieldDrift;
-        double dEff = Info.EffectiveDepth;
-
-        double currentElongation = 0;
-        double currentDrift = 0;
-
+        var dy = Info.RebarYieldDrift;
+        var dEff = Info.EffectiveDepth;
+        var residualElongations = Info.Coefficients.GetResidualElongation(dEff, dy);
         var co = Info.Coefficients;
+        bool isExperiencedYield = false;
+        bool newExperiencedDrift = false;
+        bool isInPlasticArea = false;
+        bool isInResidualArea=false;
+        
 
+        double ecr = 0;
+        double currentDrift = 0;
+        double destinationDrift = 0;
+        double currentElongation = 0;
+        double deltaD = 0;
+        double deltaE = 0;
+        double currentCoefficient = 0;
+        double destinationElongation = 0;
+        double startDrift = 0;
+        double cycle = 0;
+        double slope = 0;
+        int repeat = 0;
+        int id = 0;
+        double futureDrift = 0;
         foreach (var item in DriftSegments)
         {
-
-
-            while (Math.Abs(currentDrift - item.End) < 1e-6)
+            var step = item.UnsignedStep;
+            double[]? deltaValues;
+            switch (item.CycleState)
             {
+                case CycleState.PL:
+                    deltaValues = MathExtension.Arrange(item.Start, item.End, step);
+                    var n = deltaValues.Length;
 
-                var driftDestination = item.End;
-                var deltaE = 0.0;
-                switch (item.CycleState)
-                {
-                    case CycleState.PositiveLoading:
-
-                        if (currentDrift < dy && peakPositive < dy && driftDestination<dy)
+                    var deltas = new Delta[n];
+                    for (int i = 0; i < n; i++)
+                    {
+                        id += 1;
+                        cycle += 0.25 / n;
+                        var a = deltaValues[i];
+                        var b = a + step;
+                        deltaD = step;
+                        if (a < dy && b > dy)
                         {
-                            driftDestination = item.End;
-                            var deltaD = driftDestination - currentDrift;
-                            deltaE = deltaD * dEff * co.PositiveElastic;
+                            throw new ArgumentException(
+                                $"The yield drift ({dy}) is placed between the steps. This is not allowed.");
+                        }
+                        if (a < peakPositive && b > peakPositive)
+                        {
+                            throw new ArgumentException(
+                                $"The peak positive drift ({peakPositive}) is placed between the steps. This is not allowed.");
+                        }
+                        if (a >= dy && b > dy)
+                        {
+                            isExperiencedYield = true;
+                        }
+                        if (a < dy && b <= dy)
+                        {
+                            currentCoefficient = co.PositiveElastic;
+                            isInPlasticArea = false;
                         }
                         else
                         {
-                            throw new InvalidOperationException("The parameters are not in range")
+                            currentElongation = co.PositivePlastic;
+                            isInPlasticArea = true;
                         }
-                        break;
-                    case CycleState.PositiveUnloading:
-                        break;
-                    case CycleState.NegativeLoading:
-                        break;
-                    case CycleState.NegativeUnloading:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-                var deltaDrift = new DeltaDrift(currentDrift, driftDestination);
-                var deltaElongation = new DeltaElongation(currentElongation, currentElongation + deltaE);
-                currentDrift=driftDestination;
-                currentElongation += deltaE;
-            }
-
-
-            var step = item.GetSignedStep();
-            var deltaValues = MathExtension.Arrange(item.Start, item.End, step);
-            var n = deltaValues.Length;
-            var deltas = new Delta[n];
-            (peakPositive, peakNegative) = item.GetPeaks(peakPositive, peakNegative);
-
-            for (int i = 0; i < n; i++)
-            {
-                var a = deltaValues[i];
-                var b = a + step;
-                var deltaDrift = new DeltaDrift(a, b);
-                var dir = deltaDrift.GetDirection(); // positive or negative
-                var rebarCondition = deltaDrift.GetRebarCondition(dy); // elastic or plastic
-                var depC = Info.Coefficients.GetCurrentDepthCoefficient(dir, rebarCondition); // elastic or plastic
-                var repeat = GetRepeat(a, b); // the number of repeats in cycles
-                var slope = Extensions.GetSlopeOfElongationLine(repeat); //based on the repeat number
-                var residual = (dir == Direction.Positive) ? residualElongations.Positive : residualElongations.Negative; //Coeff*D*dy
-                double deltaE = 0;
-                double startE = 0;
-                double endE = 0;
-                double eccentricity = 0;
-                if (item.LoadingPhase == LoadingPhase.Loading)
-                {
-                    eccentricity = dEff * depC;
-                    deltaE = slope * eccentricity * Math.Abs(step);
-                    startE = currentElongation;
-                    endE = startE + deltaE;
-                }
-                else
-                {
-                    startE = currentElongation;
-                    var destination = currentElongation - residual;
-                    var cc = (dir == Direction.Positive) ? co.PositiveElastic : co.NegativeElastic;
-                    var ecrElastic = cc * dEff;
-                    deltaE = -slope * ecrElastic * Math.Abs(step);
-                    endE = startE + deltaE;
-                    if (endE >= destination || Math.Abs(endE - destination) < 1e-6)
-                    {
-                        eccentricity = Extensions.GetEccentricity(dEff, depC);
+                        if (!isExperiencedYield)
+                        {
+                            slope = 1;
+                            repeat = 0;
+                        }
+                        else
+                        {
+                            repeat = GetRepeat(a, b); // the number of repeats in cycles
+                            slope = Extensions.GetSlopeOfElongationLine(repeat);
+                        }
+                        if (a >= peakPositive && b > peakPositive)
+                        {
+                            newExperiencedDrift = true;
+                            peakPositive = b;
+                        }
+                        else
+                        {
+                            newExperiencedDrift = false;
+                        }
+                        ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
+                        deltaE = ecr * deltaD;
+                        currentDrift = a;
+                        destinationDrift = b;
+                        destinationElongation += currentElongation + deltaE;
+                        var condition = Extensions.GetConditionInLoading(isExperiencedYield, newExperiencedDrift, isInPlasticArea);
+                        var dd = new DeltaDrift(currentDrift, destinationDrift);
+                        var ee = new DeltaElongation(currentElongation, destinationElongation);
+                        var sec = new SectionCondition(isExperiencedYield,
+                            currentCoefficient, repeat, slope, ecr, condition);
+                        deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
+                        currentElongation = destinationElongation;
                     }
-                    else
+                    _allDeltas.AddRange(deltas);
+                    break;
+                case CycleState.PU:
+                   
+                    deltaValues = MathExtension.Arrange(item.Start, item.End, -step);
+                    futureDrift = item.End - dy;
+                    n = deltaValues.Length; deltas = new Delta[n];
+                    for (int i = 0; i < n; i++)
                     {
-                        deltaE = 0;
-                        endE = destination;
-                        eccentricity = ecrElastic;
+                        id += 1;
+                        cycle += 0.25 / n;
+                        var a = deltaValues[i];
+                        deltaD = -step;
+                        var b = a + step;
+                        if (b < futureDrift && a > futureDrift)
+                        {
+                            throw new ArgumentException(
+                                $"The future drift ({futureDrift}) is placed between the steps. This is not allowed.");
+                        }
+                        if (b >= futureDrift)
+                        {
+                            slope = -1;
+                            repeat = 0;
+                            isInResidualArea = true;
+                        }
+                        else
+                        {
+                            slope = 0;
+                            repeat = 0;
+                            isInResidualArea = false;
+                        }
+                        ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
+                        deltaE = ecr * deltaD;
+                        currentDrift = a;
+                        destinationDrift = b;
+                        destinationElongation += currentElongation + deltaE;
+                        var condition = Extensions.GetDeltaConditionInUnLoading(isInResidualArea);
+                        var dd = new DeltaDrift(currentDrift, destinationDrift);
+                        var ee = new DeltaElongation(currentElongation, destinationElongation);
+                        var sec = new SectionCondition(isExperiencedYield,
+                            currentCoefficient, repeat, slope, ecr, condition);
+                        deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
+                        currentElongation = destinationElongation;
                     }
-                }
-                var sec = new SectionCondition(rebarCondition, eccentricity, depC, repeat, slope);
-                currentElongation += deltaE;
-                var elongation = new DeltaElongation(startE, endE, dir, item.LoadingPhase);
-                var delta = new Delta(i, deltaDrift, elongation, sec);
-                deltas[i] = delta;
-                this._allDeltas.Add(delta);
-            }
-            var ls = new LineSegment(item, deltas);
-            _lines.Add(ls);
 
+                    break;
+                case CycleState.NL:
+                    deltaValues = MathExtension.Arrange(item.Start, item.End, -step);
+                     n = deltaValues.Length;
+                    deltas = new Delta[n];
+                    for (int i = 0; i < n; i++)
+                    {
+                        id += 1;
+                        cycle += 0.25 / n;
+                        var a = deltaValues[i];
+                        var b = a - step;
+                        deltaD = -step;
+                        if (b < -dy && a > -dy)
+                        {
+                            throw new ArgumentException(
+                                $"The yield drift ({-dy}) is placed between the steps. This is not allowed.");
+                        }
+                        if (a > peakNegative && b < peakNegative)
+                        {
+                            throw new ArgumentException(
+                                $"The peak negative drift ({peakNegative}) is placed between the steps. This is not allowed.");
+                        }
+                        if (a <= -dy && b < -dy)
+                        {
+                            isExperiencedYield = true;
+                        }
+                        if (a > -dy && b>= dy)
+                        {
+                            currentCoefficient = co.NegativeElastic;
+                            isInPlasticArea = false;
+                        }
+                        else
+                        {
+                            currentElongation = co.NegativePlastic;
+                            isInPlasticArea = true;
+                        }
+                        if (!isExperiencedYield) // it can change the behavior
+                        {
+                            slope = 1;
+                            repeat = 0;
+                        }
+                        else
+                        {
+                            repeat = GetRepeat(a, b); // the number of repeats in cycles
+                            slope = Extensions.GetSlopeOfElongationLine(repeat);
+                        }
+                        if (a <= peakNegative && b < peakNegative)
+                        {
+                            newExperiencedDrift = true;
+                            peakNegative = b;
+                        }
+                        else
+                        {
+                            newExperiencedDrift = false;
+                        }
+                        ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
+                        deltaE = -ecr * deltaD;
+                        currentDrift = a;
+                        destinationDrift = b;
+                        destinationElongation += currentElongation + deltaE;
+                        var condition = Extensions.GetConditionInLoading(isExperiencedYield, newExperiencedDrift, isInPlasticArea);
+                        var dd = new DeltaDrift(currentDrift, destinationDrift);
+                        var ee = new DeltaElongation(currentElongation, destinationElongation);
+                        var sec = new SectionCondition(isExperiencedYield,
+                            currentCoefficient, repeat, slope, ecr, condition);
+                        deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
+                        currentElongation = destinationElongation;
+                    }
+                    _allDeltas.AddRange(deltas);
+                    break;
+                case CycleState.NU:
+                    deltaValues = MathExtension.Arrange(item.Start, item.End, step);
+                    futureDrift = item.Start + dy;
+                    n = deltaValues.Length; deltas = new Delta[n];
+                    for (int i = 0; i < n; i++)
+                    {
+                        id += 1;
+                        cycle += 0.25 / n;
+                        var a = deltaValues[i];
+                        deltaD = step;
+                        var b = a + step;
+                        if (b > futureDrift && a < futureDrift)
+                        {
+                            throw new ArgumentException(
+                                $"The future drift ({futureDrift}) is placed between the steps. This is not allowed.");
+                        }
+                        if (b <= futureDrift)
+                        {
+                            slope = -1;
+                            repeat = 0;
+                            isInResidualArea = true;
+                        }
+                        else
+                        {
+                            slope = 0;
+                            repeat = 0;
+                            isInResidualArea = false;
+                        }
+                        ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
+                        deltaE = ecr * deltaD;
+                        currentDrift = a;
+                        destinationDrift = b;
+                        destinationElongation += currentElongation + deltaE;
+                        var condition = Extensions.GetDeltaConditionInUnLoading(isInResidualArea);
+                        var dd = new DeltaDrift(currentDrift, destinationDrift);
+                        var ee = new DeltaElongation(currentElongation, destinationElongation);
+                        var sec = new SectionCondition(isExperiencedYield,
+                            currentCoefficient, repeat, slope, ecr, condition);
+                        deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
+                        currentElongation = destinationElongation;
+                    }
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+          
         }
     }
 }

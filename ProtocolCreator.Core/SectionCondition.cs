@@ -1,14 +1,19 @@
 ﻿namespace ProtocolCreator.Core;
 
-public class SectionCondition(RebarCondition rebarCondition, double eccentricity, double depthCoefficient, int repeat,double k)
+
+public class SectionCondition(
+    bool experiencedYield,
+    double depthCoefficient,
+    int repeat,
+    double slope,
+    double ecr,
+    DeltaCondition condition)
 {
-    public RebarCondition RebarCondition { get; } = rebarCondition;
-    public double Eccentricity { get; } = eccentricity;
-
+    public DeltaCondition Condition { get; } = condition;
+    public bool ExperiencedYield { get; } = experiencedYield;
+   
     public double DepthCoefficient { get; } = depthCoefficient;
-
-    public double K { get; } = k; // Slope of the line in the elongation curve
-
-    public int Repeat { get; } = repeat; // Number of repetitions of the drift. It means how many times the beam experienced this drift
-
+    public int Repeat { get; } = repeat;
+    public double Slope { get; } = slope; // Slope of the line in the elongation curve
+    public double Eccentricity { get; } = ecr;
 }

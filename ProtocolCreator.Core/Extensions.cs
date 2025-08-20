@@ -16,18 +16,28 @@
         {
             return 0.5*(driftSegment.Start+driftSegment.End) >= 0 ? Direction.Positive : Direction.Negative;
         }
-        public static RebarCondition GetRebarCondition(double a,double b, double reinforcementYieldDrift)
+        public static DeltaCondition GetConditionInLoading(bool isExperiencedYield,bool newExperiencedDrift,bool isInPlastic)
         {
-            var c=0.5*(a + b);
-            return Math.Abs(c) > Math.Abs(reinforcementYieldDrift) ? RebarCondition.Yield : RebarCondition.Elastic;
+            return isExperiencedYield switch
+            {
+                false when !isInPlastic => DeltaCondition.NewElastic,
+                true when !isInPlastic => DeltaCondition.OldElastic,
+                true when isInPlastic && !newExperiencedDrift => DeltaCondition.OldPlastic,
+                true when isInPlastic && newExperiencedDrift => DeltaCondition.NewPlastic,
+                _ => throw new ArgumentException("Invalid state for loading condition")
+            };
         }
-        public static RebarCondition GetRebarCondition(this DeltaDrift deltaDrift,double reinforcementYieldDrift)
+        public static DeltaCondition GetDeltaConditionInUnLoading(bool isInResidual)
         {
-            return Math.Abs(deltaDrift.Center)>Math.Abs(reinforcementYieldDrift) ? RebarCondition.Yield : RebarCondition.Elastic;
+            return isInResidual ? DeltaCondition.Residual : DeltaCondition.Slip;
         }
-        public static double GetCurrentDepthCoefficient(this CoefficientContainer coefficientContainer,Direction direction, RebarCondition rebarCondition)
+        public static DeltaCondition GetRebarCondition(this DeltaDrift deltaDrift,double reinforcementYieldDrift)
         {
-            if (rebarCondition == RebarCondition.Elastic)
+            return Math.Abs(deltaDrift.Center)>Math.Abs(reinforcementYieldDrift) ? DeltaCondition.Yield : DeltaCondition.Elastic;
+        }
+        public static double GetCurrentDepthCoefficient(this CoefficientContainer coefficientContainer,Direction direction, DeltaCondition deltaCondition)
+        {
+            if (deltaCondition == DeltaCondition.Elastic)
             {
                 return direction == Direction.Positive ? coefficientContainer. PositiveElastic : coefficientContainer.NegativeElastic;
             }
@@ -44,6 +54,7 @@
         {
             return repeat switch
             {
+                0 => 1,
                 1 => 1,
                 2 => 0.5,
                 3 => 0.25,

@@ -12,22 +12,22 @@ public class DriftSegment(double start, double end, double unsignedStep)
     {
         if (end >= start && Math.Abs(start) <= Math.Abs(end))
         {
-            return CycleState.PositiveLoading;
+            return CycleState.PL;
         }
 
         if (end < start && Math.Abs(start) <= Math.Abs(end))
         {
-            return CycleState.NegativeLoading;
+            return CycleState.NL;
         }
 
         if (end < start && Math.Abs(start) > Math.Abs(end))
         {
-            return CycleState.PositiveUnloading;
+            return CycleState.PU;
         }
 
         if (end >= start && Math.Abs(start) > Math.Abs(end))
         {
-            return CycleState.NegativeUnloading;
+            return CycleState.NU;
         }
         throw new ArgumentException("Invalid drift segment state. Cannot determine cycle state.");
     }

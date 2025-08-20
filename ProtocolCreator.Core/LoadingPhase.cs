@@ -8,8 +8,8 @@ public enum LoadingPhase : byte
 
 public enum CycleState
 {
-    PositiveLoading,
-    PositiveUnloading,
-    NegativeLoading,
-    NegativeUnloading,
+    PL,
+    PU,
+    NL,
+    NU,
 }
