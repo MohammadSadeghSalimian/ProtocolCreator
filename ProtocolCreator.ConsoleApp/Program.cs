@@ -1,4 +1,5 @@
-﻿using ProtocolCreator.Core;
+﻿using System.Diagnostics;
+using ProtocolCreator.Core;
 using ProtocolCreator.Infrastructures;
 
 namespace ProtocolCreator.ConsoleApp
@@ -54,12 +55,18 @@ namespace ProtocolCreator.ConsoleApp
                 aa.Close();
                 var engine = new Engine(driftSegments, info);
                 engine.Calculate();
-            
+
                 var excelSaver = new ExcelResultSaver();
                 var outputPath = Path.Combine(Environment.CurrentDirectory, "Results.xlsx");
-                var downSampledData = engine.Deltas.Downsample(x => x.Id, 1e-6,1,
-                    x => x.Drift.End, x => x.Elongation.End);
-                excelSaver.Save(new FileInfo(outputPath), downSampledData);
+                var outputFile = new FileInfo(outputPath);
+                excelSaver.Save(outputFile, engine.Deltas);
+                var plotter = new Plotter();
+                plotter.PlotDriftElongationVsCycle(new DirectoryInfo(Environment.CurrentDirectory),"Results",engine.Deltas);
+                var p = new ProcessStartInfo(Path.Combine(Environment.CurrentDirectory))
+                {
+                    UseShellExecute = true,
+                };
+                Process.Start(p);
             }
             catch (Exception e)
             {
@@ -78,7 +85,7 @@ namespace ProtocolCreator.ConsoleApp
             Console.WriteLine("Press any key to start...");
             Console.ReadKey();
             Console.WriteLine("Enter the number of the repats in cycles:");
-            var repeatText= Console.ReadLine();
+            var repeatText = Console.ReadLine();
             if (string.IsNullOrEmpty(repeatText))
             {
                 Console.WriteLine("Repeat should be a positive integer number");
@@ -92,7 +99,7 @@ namespace ProtocolCreator.ConsoleApp
                 return;
             }
             Console.WriteLine("Enter all the drift level and separate them by comma:");
-            var text=Console.ReadLine();
+            var text = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(text))
             {
                 Console.WriteLine("No drift levels provided. Exiting...");
@@ -105,16 +112,16 @@ namespace ProtocolCreator.ConsoleApp
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(double.Parse)
                 .ToList();
-          
+
             var segmentBuilder = new DriftSegmentCreator();
             try
             {
-                segmentBuilder.Create(new FileInfo(path),n,driftLevels);
+                segmentBuilder.Create(new FileInfo(path), n, driftLevels);
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
-               return;
+                return;
             }
             Console.WriteLine($"Drift segments saved to '{path}'.");
 

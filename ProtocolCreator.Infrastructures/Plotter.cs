@@ -1,0 +1,78 @@
+﻿using ProtocolCreator.Core;
+using ScottPlot;
+using ScottPlot.MultiplotLayouts;
+using SkiaSharp;
+
+namespace ProtocolCreator.Infrastructures;
+
+public class Plotter
+{
+    public void PlotDriftElongationVsCycle(DirectoryInfo outputFolder, string name, IReadOnlyList<Delta> deltas)
+    {
+        ArgumentNullException.ThrowIfNull(outputFolder);
+        Directory.CreateDirectory(outputFolder.FullName);
+
+        var p1 = new Plot();
+
+
+        var gg = deltas.GroupBy(x => x.Segment.CycleState).ToDictionary(x => x.Key, x => x.ToList());
+
+        var s1 = p1.Add.ScatterLine(deltas.Select(x => new Coordinates(x.Cycle, x.Drift.End)).ToArray());
+        s1.Axes.YAxis = p1.Axes.Left;
+        s1.LineWidth = 1;
+        s1.MarkerStyle.Shape = MarkerShape.None;
+        s1.Color = Colors.Gray;
+        s1.LineWidth = 2;
+        s1.LinePattern=LinePattern.Solid;
+        p1.Grid.IsVisible = true;
+
+        p1.Axes.Title.Label.FontName = "Times New Roman";
+
+        p1.Axes.Left.Label.Text = "Drift (%)";
+        p1.Axes.Bottom.Label.Text = "Cycle";
+        p1.Axes.Right.Label.Text = "Elongation (mm)";
+
+        p1.Axes.Bottom.Label.FontName = "Times New Roman";
+        p1.Axes.Left.Label.FontName = "Times New Roman";
+
+        var colors = new[] { Colors.C0, Colors.C1, Colors.C2, Colors.C3, Colors.C4 };
+        //foreach (var pair in gg)
+        //{
+        //    var sx = p1.Add.ScatterPoints(pair.Value.Select(x => new Coordinates(x.Cycle, x.Drift.End)).ToArray());
+        //    sx.Axes.YAxis = p1.Axes.Left;
+        //    sx.LineWidth = 0;
+        //    sx.MarkerStyle.MarkerColor = colors[k % colors.Length];
+        //    sx.MarkerSize = 4;
+        //    sx.MarkerShape = MarkerShape.FilledSquare;
+        //    k++;
+        //}
+
+
+        var s2 = p1.Add.ScatterLine(deltas.Select(x => new Coordinates(x.Cycle, x.Elongation.End)).ToArray());
+        s2.Axes.YAxis = p1.Axes.Right;
+
+        s2.LineWidth = 1;
+        s2.MarkerStyle.Shape = MarkerShape.None;
+        s2.Color = Colors.Black;
+
+
+        var k = 0;
+        foreach (var pair in gg)
+        {
+            var sx = p1.Add.ScatterPoints(pair.Value.Select(x => new Coordinates(x.Cycle, x.Elongation.End)).ToArray());
+            sx.Axes.YAxis = p1.Axes.Right;
+            sx.LineWidth = 0;
+            sx.MarkerStyle.MarkerColor = colors[k % colors.Length];
+            sx.MarkerSize = 6;
+            sx.MarkerShape = MarkerShape.FilledCircle;
+            k++;
+        }
+        //p1.ScaleFactor = 1;
+        //p2.ScaleFactor = 4;
+
+        p1.SaveSvg(Path.Combine(outputFolder.FullName, name + "Cycle-Drift.svg"), 1 * 1600, 1 * 900);
+
+
+
+    }
+}

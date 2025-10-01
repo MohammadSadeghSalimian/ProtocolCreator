@@ -27,32 +27,32 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
         double peakNegative = 0;
         var dy = Info.RebarYieldDrift;
         var dEff = Info.EffectiveDepth;
-        var residualElongations = Info.Coefficients.GetResidualElongation(dEff, dy);
+      
         var co = Info.Coefficients;
-        bool isExperiencedYield = false;
-        bool newExperiencedDrift = false;
-        bool isInPlasticArea = false;
-        bool isInResidualArea=false;
-        
+        var isExperiencedYield = false;
 
-        double ecr = 0;
-        double currentDrift = 0;
-        double destinationDrift = 0;
+
         double currentElongation = 0;
-        double deltaD = 0;
-        double deltaE = 0;
-        double currentCoefficient = 0;
-        double destinationElongation = 0;
-        double startDrift = 0;
+
         double cycle = 0;
-        double slope = 0;
-        int repeat = 0;
-        int id = 0;
-        double futureDrift = 0;
+        var id = 0;
         foreach (var item in DriftSegments)
         {
             var step = item.UnsignedStep;
             double[]? deltaValues;
+            var newExperiencedDrift = false;
+            var isInPlasticArea = false;
+            bool isInResidualArea;
+            double ecr = 0;
+            double currentDrift = 0;
+            double destinationDrift = 0;
+            double deltaD = 0;
+            double deltaE = 0;
+            double slope = 0;
+            var repeat = 0;
+            double futureDrift = 0;
+            double currentCoefficient = 0;
+            double destinationElongation = 0;
             switch (item.CycleState)
             {
                 case CycleState.PL:
@@ -60,7 +60,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                     var n = deltaValues.Length;
 
                     var deltas = new Delta[n];
-                    for (int i = 0; i < n; i++)
+                    for (var i = 0; i < n; i++)
                     {
                         id += 1;
                         cycle += 0.25 / n;
@@ -88,7 +88,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         }
                         else
                         {
-                            currentElongation = co.PositivePlastic;
+                            currentCoefficient = co.PositivePlastic;
                             isInPlasticArea = true;
                         }
                         if (!isExperiencedYield)
@@ -111,10 +111,10 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                             newExperiencedDrift = false;
                         }
                         ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
-                        deltaE = ecr * deltaD;
+                        deltaE = ecr * deltaD/100;
                         currentDrift = a;
                         destinationDrift = b;
-                        destinationElongation += currentElongation + deltaE;
+                        destinationElongation = currentElongation + deltaE;
                         var condition = Extensions.GetConditionInLoading(isExperiencedYield, newExperiencedDrift, isInPlasticArea);
                         var dd = new DeltaDrift(currentDrift, destinationDrift);
                         var ee = new DeltaElongation(currentElongation, destinationElongation);
@@ -128,23 +128,25 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                 case CycleState.PU:
                    
                     deltaValues = MathExtension.Arrange(item.Start, item.End, -step);
-                    futureDrift = item.End - dy;
+                    futureDrift = Math.Max(item.Start - dy,dy);
                     n = deltaValues.Length; deltas = new Delta[n];
-                    for (int i = 0; i < n; i++)
+                    for (var i = 0; i < n; i++)
                     {
                         id += 1;
                         cycle += 0.25 / n;
                         var a = deltaValues[i];
                         deltaD = -step;
-                        var b = a + step;
+                        var b = a - step;
                         if (b < futureDrift && a > futureDrift)
                         {
                             throw new ArgumentException(
                                 $"The future drift ({futureDrift}) is placed between the steps. This is not allowed.");
                         }
+
+                        currentCoefficient = co.PositiveElastic;
                         if (b >= futureDrift)
                         {
-                            slope = -1;
+                            slope = 1;
                             repeat = 0;
                             isInResidualArea = true;
                         }
@@ -155,10 +157,10 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                             isInResidualArea = false;
                         }
                         ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
-                        deltaE = ecr * deltaD;
+                        deltaE = ecr * deltaD/100;
                         currentDrift = a;
                         destinationDrift = b;
-                        destinationElongation += currentElongation + deltaE;
+                        destinationElongation = currentElongation + deltaE;
                         var condition = Extensions.GetDeltaConditionInUnLoading(isInResidualArea);
                         var dd = new DeltaDrift(currentDrift, destinationDrift);
                         var ee = new DeltaElongation(currentElongation, destinationElongation);
@@ -167,13 +169,13 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
                         currentElongation = destinationElongation;
                     }
-
+                    _allDeltas.AddRange(deltas);
                     break;
                 case CycleState.NL:
                     deltaValues = MathExtension.Arrange(item.Start, item.End, -step);
                      n = deltaValues.Length;
                     deltas = new Delta[n];
-                    for (int i = 0; i < n; i++)
+                    for (var i = 0; i < n; i++)
                     {
                         id += 1;
                         cycle += 0.25 / n;
@@ -194,14 +196,14 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         {
                             isExperiencedYield = true;
                         }
-                        if (a > -dy && b>= dy)
+                        if (a > -dy && b>= -dy)
                         {
                             currentCoefficient = co.NegativeElastic;
                             isInPlasticArea = false;
                         }
                         else
                         {
-                            currentElongation = co.NegativePlastic;
+                            currentCoefficient = co.NegativePlastic;
                             isInPlasticArea = true;
                         }
                         if (!isExperiencedYield) // it can change the behavior
@@ -224,10 +226,10 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                             newExperiencedDrift = false;
                         }
                         ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
-                        deltaE = -ecr * deltaD;
+                        deltaE = -ecr * deltaD/100.0;
                         currentDrift = a;
                         destinationDrift = b;
-                        destinationElongation += currentElongation + deltaE;
+                        destinationElongation = currentElongation + deltaE;
                         var condition = Extensions.GetConditionInLoading(isExperiencedYield, newExperiencedDrift, isInPlasticArea);
                         var dd = new DeltaDrift(currentDrift, destinationDrift);
                         var ee = new DeltaElongation(currentElongation, destinationElongation);
@@ -240,9 +242,9 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                     break;
                 case CycleState.NU:
                     deltaValues = MathExtension.Arrange(item.Start, item.End, step);
-                    futureDrift = item.Start + dy;
+                    futureDrift =Math.Min(item.Start + dy,-dy);
                     n = deltaValues.Length; deltas = new Delta[n];
-                    for (int i = 0; i < n; i++)
+                    for (var i = 0; i < n; i++)
                     {
                         id += 1;
                         cycle += 0.25 / n;
@@ -254,9 +256,11 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                             throw new ArgumentException(
                                 $"The future drift ({futureDrift}) is placed between the steps. This is not allowed.");
                         }
+
+                        currentCoefficient = co.NegativeElastic;
                         if (b <= futureDrift)
                         {
-                            slope = -1;
+                            slope = 1;
                             repeat = 0;
                             isInResidualArea = true;
                         }
@@ -267,10 +271,10 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                             isInResidualArea = false;
                         }
                         ecr = slope * currentCoefficient * dEff; // eccentricity coefficient
-                        deltaE = ecr * deltaD;
+                        deltaE = -ecr * deltaD / 100;
                         currentDrift = a;
                         destinationDrift = b;
-                        destinationElongation += currentElongation + deltaE;
+                        destinationElongation = currentElongation + deltaE;
                         var condition = Extensions.GetDeltaConditionInUnLoading(isInResidualArea);
                         var dd = new DeltaDrift(currentDrift, destinationDrift);
                         var ee = new DeltaElongation(currentElongation, destinationElongation);
@@ -279,6 +283,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         deltas[i] = new Delta(id, cycle, dd, ee, sec, item);
                         currentElongation = destinationElongation;
                     }
+                    _allDeltas.AddRange(deltas);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

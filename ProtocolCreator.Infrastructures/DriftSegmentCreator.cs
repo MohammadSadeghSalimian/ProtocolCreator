@@ -13,7 +13,7 @@ public class DriftSegmentCreator : IDriftSegmentCreator
         ArgumentNullException.ThrowIfNull(file.Directory);
         Directory.CreateDirectory(file.Directory.FullName);
 
-        using var workbook = new XLWorkbook(file.FullName);
+        using var workbook = new XLWorkbook();
         var sheet = workbook.Worksheets.Add("DriftSegments");
 
         // Write header row
