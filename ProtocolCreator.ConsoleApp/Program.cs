@@ -1,4 +1,5 @@
-﻿using ProtocolCreator.Core;
+﻿using System.Diagnostics;
+using ProtocolCreator.Core;
 using ProtocolCreator.Infrastructures;
 
 namespace ProtocolCreator.ConsoleApp
@@ -57,9 +58,13 @@ namespace ProtocolCreator.ConsoleApp
             
                 var excelSaver = new ExcelResultSaver();
                 var outputPath = Path.Combine(Environment.CurrentDirectory, "Results.xlsx");
-                var downSampledData = engine.Deltas.Downsample(x => x.Id, 1e-6,1,
-                    x => x.Drift.End, x => x.Elongation.End);
-                excelSaver.Save(new FileInfo(outputPath), downSampledData);
+             var outputFile=new FileInfo(outputPath);
+                excelSaver.Save(new FileInfo(outputPath), engine.Deltas);
+                var p = new ProcessStartInfo(outputPath)
+                {
+                    UseShellExecute = true,
+                };
+                Process.Start(p);
             }
             catch (Exception e)
             {

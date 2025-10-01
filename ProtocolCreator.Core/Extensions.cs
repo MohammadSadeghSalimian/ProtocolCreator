@@ -31,19 +31,19 @@
         {
             return isInResidual ? DeltaCondition.Residual : DeltaCondition.Slip;
         }
-        public static DeltaCondition GetRebarCondition(this DeltaDrift deltaDrift,double reinforcementYieldDrift)
-        {
-            return Math.Abs(deltaDrift.Center)>Math.Abs(reinforcementYieldDrift) ? DeltaCondition.Yield : DeltaCondition.Elastic;
-        }
-        public static double GetCurrentDepthCoefficient(this CoefficientContainer coefficientContainer,Direction direction, DeltaCondition deltaCondition)
-        {
-            if (deltaCondition == DeltaCondition.Elastic)
-            {
-                return direction == Direction.Positive ? coefficientContainer. PositiveElastic : coefficientContainer.NegativeElastic;
-            }
+        //public static DeltaCondition GetRebarCondition(this DeltaDrift deltaDrift,double reinforcementYieldDrift)
+        //{
+        //    return Math.Abs(deltaDrift.Center)>Math.Abs(reinforcementYieldDrift) ? DeltaCondition.Yield : DeltaCondition.Elastic;
+        //}
+        //public static double GetCurrentDepthCoefficient(this CoefficientContainer coefficientContainer,Direction direction, DeltaCondition deltaCondition)
+        //{
+        //    if (deltaCondition == DeltaCondition.Elastic)
+        //    {
+        //        return direction == Direction.Positive ? coefficientContainer. PositiveElastic : coefficientContainer.NegativeElastic;
+        //    }
 
-            return direction == Direction. Positive ? coefficientContainer.PositivePlastic : coefficientContainer.NegativePlastic;
-        }
+        //    return direction == Direction. Positive ? coefficientContainer.PositivePlastic : coefficientContainer.NegativePlastic;
+        //}
 
         public static double GetEccentricity(double effectiveDepth, double depthCoefficient)
         {
@@ -70,15 +70,15 @@
         }
 
 
-        public static double GetSignedStep(this DriftSegment driftSegment)
-        {
-            if (driftSegment is { Direction: Direction.Positive, LoadingPhase: LoadingPhase.Unloading } or { Direction: Direction.Negative, LoadingPhase: LoadingPhase.Loading })
-            {
-                return -driftSegment.UnsignedStep;
-            }
+        //public static double GetSignedStep(this DriftSegment driftSegment)
+        //{
+        //    if (driftSegment is { Direction: Direction.Positive, LoadingPhase: LoadingPhase.Unloading } or { Direction: Direction.Negative, LoadingPhase: LoadingPhase.Loading })
+        //    {
+        //        return -driftSegment.UnsignedStep;
+        //    }
 
-            return driftSegment.UnsignedStep;
-        }
+        //    return driftSegment.UnsignedStep;
+        //}
 
         public static (double, double) GetPeaks(this DriftSegment driftSegment, double positive, double negative)
         {
