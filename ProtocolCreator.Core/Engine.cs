@@ -7,7 +7,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
     public IReadOnlyList<Delta> Deltas => _allDeltas;
     public IReadOnlyList<DriftSegment> DriftSegments { get; } = driftSegments;
     private readonly Dictionary<DoublePair, int> _repeatCounter = new();
-    private readonly List<LineSegment> _lines = new List<LineSegment>(driftSegments.Count);
+    private readonly List<LineSegment> _lines = new(driftSegments.Count);
     public IReadOnlyList<LineSegment> Lines => _lines;
     public AnalysisInformation Info { get; } = info;
     private int GetRepeat(double a, double b)
