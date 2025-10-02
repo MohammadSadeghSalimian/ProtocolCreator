@@ -26,6 +26,7 @@ public class Plotter
         s1.LinePattern=LinePattern.Solid;
         p1.Grid.IsVisible = true;
 
+
         p1.Axes.Title.Label.FontName = "Times New Roman";
 
         p1.Axes.Left.Label.Text = "Drift (%)";
