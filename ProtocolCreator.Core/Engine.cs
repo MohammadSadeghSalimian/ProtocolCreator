@@ -128,7 +128,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                 case CycleState.PU:
                    
                     deltaValues = MathExtension.Arrange(item.Start, item.End, -step);
-                    futureDrift = Math.Max(item.Start - dy,dy);
+                    futureDrift = item.Start - dy;
                     n = deltaValues.Length; deltas = new Delta[n];
                     for (var i = 0; i < n; i++)
                     {
@@ -242,7 +242,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                     break;
                 case CycleState.NU:
                     deltaValues = MathExtension.Arrange(item.Start, item.End, step);
-                    futureDrift =Math.Min(item.Start + dy,-dy);
+                    futureDrift =item.Start + dy;
                     n = deltaValues.Length; deltas = new Delta[n];
                     for (var i = 0; i < n; i++)
                     {

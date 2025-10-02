@@ -26,6 +26,7 @@ public class Plotter
         s1.LinePattern=LinePattern.Solid;
         p1.Grid.IsVisible = true;
 
+
         p1.Axes.Title.Label.FontName = "Times New Roman";
 
         p1.Axes.Left.Label.Text = "Drift (%)";
@@ -67,10 +68,10 @@ public class Plotter
             sx.MarkerShape = MarkerShape.FilledCircle;
             k++;
         }
-        //p1.ScaleFactor = 1;
+        p1.ScaleFactor = 4;
         //p2.ScaleFactor = 4;
 
-        p1.SaveSvg(Path.Combine(outputFolder.FullName, name + "Cycle-Drift.svg"), 1 * 1600, 1 * 900);
+        p1.SavePng(Path.Combine(outputFolder.FullName, name + "Cycle-Drift.png"), 4 * 1600, 4 * 900);
 
 
 
