@@ -284,6 +284,7 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         currentElongation = destinationElongation;
                     }
                     _allDeltas.AddRange(deltas);
+                    
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
