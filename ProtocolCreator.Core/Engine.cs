@@ -10,11 +10,16 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
     private readonly List<LineSegment> _lines = new(driftSegments.Count);
     public IReadOnlyList<LineSegment> Lines => _lines;
     public AnalysisInformation Info { get; } = info;
-    private int GetRepeat(double a, double b)
+    private int GetRepeat(double a, double b, bool isYielded,bool isInElastic)
     {
         var dd = new DoublePair(a, b);
         if (_repeatCounter.TryGetValue(dd, out var count))
         {
+            if (!isYielded && isInElastic)
+            {
+                _repeatCounter[dd] = 1;
+                return 1;
+            }
             _repeatCounter[dd] = count + 1;
             return count + 1;
         }
@@ -93,12 +98,12 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         }
                         if (!isExperiencedYield)
                         {
-                            slope = 1;
-                            repeat = 0;
+                            repeat = GetRepeat(a, b, isExperiencedYield, !isInPlasticArea);
+                            slope = Extensions.GetSlopeOfElongationLine(repeat);
                         }
                         else
                         {
-                            repeat = GetRepeat(a, b); // the number of repeats in cycles
+                            repeat = GetRepeat(a, b, isExperiencedYield, !isInPlasticArea); // the number of repeats in cycles
                             slope = Extensions.GetSlopeOfElongationLine(repeat);
                         }
                         if (a >= peakPositive && b > peakPositive)
@@ -208,12 +213,12 @@ public class Engine(IReadOnlyList<DriftSegment> driftSegments, AnalysisInformati
                         }
                         if (!isExperiencedYield) // it can change the behavior
                         {
-                            slope = 1;
-                            repeat = 0;
+                            repeat = GetRepeat(a, b, isExperiencedYield, !isInPlasticArea);
+                            slope = Extensions.GetSlopeOfElongationLine(repeat);
                         }
                         else
                         {
-                            repeat = GetRepeat(a, b); // the number of repeats in cycles
+                            repeat = GetRepeat(a, b, isExperiencedYield, !isInPlasticArea); // the number of repeats in cycles
                             slope = Extensions.GetSlopeOfElongationLine(repeat);
                         }
                         if (a <= peakNegative && b < peakNegative)

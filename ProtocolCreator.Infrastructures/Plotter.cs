@@ -17,24 +17,29 @@ public class Plotter
 
         var gg = deltas.GroupBy(x => x.Segment.CycleState).ToDictionary(x => x.Key, x => x.ToList());
 
-        var s1 = p1.Add.ScatterLine(deltas.Select(x => new Coordinates(x.Cycle, x.Drift.End)).ToArray());
+        var s1 = p1.Add.ScatterLine(
+            (new[] { new Coordinates(0, 0) })
+            .Concat(deltas.Select(x => new Coordinates(x.Cycle, x.Drift.End)))
+            .ToArray()
+);
         s1.Axes.YAxis = p1.Axes.Left;
         s1.LineWidth = 1;
         s1.MarkerStyle.Shape = MarkerShape.None;
         s1.Color = Colors.Gray;
         s1.LineWidth = 2;
-        s1.LinePattern=LinePattern.Solid;
+        s1.LinePattern = LinePattern.Solid;
         p1.Grid.IsVisible = true;
 
 
         p1.Axes.Title.Label.FontName = "Times New Roman";
 
-        p1.Axes.Left.Label.Text = "Drift (%)";
+        p1.Axes.Left.Label.Text = "Plastic hinge rotation (%)";
         p1.Axes.Bottom.Label.Text = "Cycle";
         p1.Axes.Right.Label.Text = "Elongation (mm)";
 
         p1.Axes.Bottom.Label.FontName = "Times New Roman";
         p1.Axes.Left.Label.FontName = "Times New Roman";
+       
 
         var colors = new[] { Colors.C0, Colors.C1, Colors.C2, Colors.C3, Colors.C4 };
         //foreach (var pair in gg)
@@ -49,12 +54,16 @@ public class Plotter
         //}
 
 
-        var s2 = p1.Add.ScatterLine(deltas.Select(x => new Coordinates(x.Cycle, x.Elongation.End)).ToArray());
+        var s2 = p1.Add.ScatterLine(
+            (new[] { new Coordinates(0, 0) })
+            .Concat(
+            deltas.Select(x => new Coordinates(x.Cycle, x.Elongation.End))).ToArray());
         s2.Axes.YAxis = p1.Axes.Right;
 
         s2.LineWidth = 1;
-        s2.MarkerStyle.Shape = MarkerShape.None;
+        s2.MarkerStyle.Shape = MarkerShape.FilledCircle;
         s2.Color = Colors.Black;
+        
 
 
         var k = 0;
@@ -76,4 +85,23 @@ public class Plotter
 
 
     }
+
+    public void DriftElongationPlotter(FileInfo file, IReadOnlyList<Delta> deltas)
+    {
+        var pp = new Plot();
+        pp.ShowGrid();
+        pp.Title("Drift vs Elongation");
+        pp.XLabel("Drift (%)");
+        pp.YLabel("Elongation (mm)");
+        var ss = pp.Add.Scatter(
+            new [] {new Coordinates(0,0)}.Concat(deltas.Select(x => new Coordinates(x.Drift.End,x.Elongation.End)))
+            .ToArray());
+        ss.MarkerSize = 10;
+        ss.LineWidth = 2;
+        ss.Color = Colors.C1;
+        ss.MarkerFillColor= Colors.C3;
+        pp.ScaleFactor = 4;
+        pp.SavePng(file.FullName, 4 * 900, 4 * 900);
+    }
+
 }

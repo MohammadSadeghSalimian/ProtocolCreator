@@ -5,7 +5,7 @@ namespace ProtocolCreator.Infrastructures;
 
 public class DriftSegmentCreator : IDriftSegmentCreator
 {
-    public void Create(FileInfo file, int repeat, IReadOnlyList<double> driftLevels)
+    public void Create(FileInfo file, int repeat, IReadOnlyList<double> driftLevels, double step)
     {
         if (repeat <= 0)
             throw new ArgumentOutOfRangeException(nameof(repeat), "Repeat must be greater than zero.");
@@ -25,7 +25,7 @@ public class DriftSegmentCreator : IDriftSegmentCreator
 
         var n = driftLevels.Count;
         var k = 1;
-        var step = 0.05;
+
         var totalRows = n * repeat * 4;
         // Use a single loop to avoid repeated index calculations and minimize Cell() calls
         for (var i = 0; i < n; i++)
@@ -60,6 +60,20 @@ public class DriftSegmentCreator : IDriftSegmentCreator
                 sheet.Cell(baseRow + 3, 4).Value = step;
             }
         }
+
+        var sheet2 = workbook.Worksheets.Add("Information");
+        sheet2.Cell(1, 1).Value = "Yield Drift";
+        sheet2.Cell(1, 2).Value =0.5;
+        sheet2.Cell(2, 1).Value = "Effective depth";
+        sheet2.Cell(2, 2).Value = 750;
+        sheet2.Cell(3, 1).Value = "Elastic Positive";
+        sheet2.Cell(3, 2).Value = 0.225;
+        sheet2.Cell(4, 1).Value = "Elastic Negative";
+        sheet2.Cell(4, 2).Value = 0.275;
+        sheet2.Cell(5, 1).Value = "Plastic Positive";
+        sheet2.Cell(5, 2).Value = 0.425;
+        sheet2.Cell(6, 1).Value = "Plastic Negative";
+        sheet2.Cell(6, 2).Value = 0.475;
 
         workbook.SaveAs(file.FullName);
     }

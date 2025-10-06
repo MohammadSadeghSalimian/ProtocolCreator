@@ -44,10 +44,13 @@ namespace ProtocolCreator.ConsoleApp
             Console.WriteLine("The results will be saved to 'Results.xlsx' in the current directory.");
             Console.WriteLine("Press any key to start...");
             Console.ReadKey();
+            Console.WriteLine("Enter the address or the name of the working folder: ");
+            var address = Console.ReadLine();
+            var workingDir = ReadWorkingDirectory(address);
             Console.WriteLine("Started!");
             try
             {
-                var inputPath = Path.Combine(Environment.CurrentDirectory, "DriftSegments.xlsx");
+                var inputPath = Path.Combine(workingDir.FullName, "DriftSegments.xlsx");
                 var aa = new ExcelInputLoader();
                 aa.Open(new FileInfo(inputPath));
                 var driftSegments = aa.LoadDriftSegments();
@@ -57,12 +60,13 @@ namespace ProtocolCreator.ConsoleApp
                 engine.Calculate();
 
                 var excelSaver = new ExcelResultSaver();
-                var outputPath = Path.Combine(Environment.CurrentDirectory, "Results.xlsx");
+                var outputPath = Path.Combine(workingDir.FullName, "Results.xlsx");
                 var outputFile = new FileInfo(outputPath);
                 excelSaver.Save(outputFile, engine.Deltas);
                 var plotter = new Plotter();
-                plotter.PlotDriftElongationVsCycle(new DirectoryInfo(Environment.CurrentDirectory),"Results",engine.Deltas);
-                var p = new ProcessStartInfo(Path.Combine(Environment.CurrentDirectory))
+                plotter.PlotDriftElongationVsCycle(workingDir, "Results",engine.Deltas);
+                plotter.DriftElongationPlotter(new FileInfo(Path.Combine(workingDir.FullName,"Results Drift-elongation.png")), engine.Deltas);
+                var p = new ProcessStartInfo(Path.Combine(workingDir.FullName))
                 {
                     UseShellExecute = true,
                 };
@@ -77,14 +81,14 @@ namespace ProtocolCreator.ConsoleApp
             Console.WriteLine("Press any key to exit...");
         }
 
-        public static void CreateSegmentFile()
+        private static void CreateSegmentFile()
         {
             Console.WriteLine("Drift segment file builder");
             Console.WriteLine("This program creates drift segments and saves them to an Excel file.");
             Console.WriteLine("The results will be saved to 'DriftSegments.xlsx' in the current directory.");
             Console.WriteLine("Press any key to start...");
             Console.ReadKey();
-            Console.WriteLine("Enter the number of the repats in cycles:");
+            Console.WriteLine("Enter the number of the repeats in cycles:");
             var repeatText = Console.ReadLine();
             if (string.IsNullOrEmpty(repeatText))
             {
@@ -105,18 +109,30 @@ namespace ProtocolCreator.ConsoleApp
                 Console.WriteLine("No drift levels provided. Exiting...");
                 return;
             }
+            Console.WriteLine("Enter the step size:");
+            var stepSizeText = Console.ReadLine();
+            var res2 = double.TryParse(stepSizeText, out var step);
+            if (!res || step <= 0)
+            {
+                Console.WriteLine("step should be a positive float number");
+                return;
+            }
+            Console.WriteLine("Enter the address or the name of the working folder: ");
+            var address = Console.ReadLine();
+            var workingDir = ReadWorkingDirectory(address);
+
             Console.WriteLine("Started!");
-            var path = Path.Combine(Environment.CurrentDirectory, "DriftSegments.xlsx");
+            var path = Path.Combine(workingDir.FullName, "DriftSegments.xlsx");
             var driftLevels = text.Split(',')
                 .Select(x => x.Trim())
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(double.Parse)
                 .ToList();
-
+           
             var segmentBuilder = new DriftSegmentCreator();
             try
             {
-                segmentBuilder.Create(new FileInfo(path), n, driftLevels);
+                segmentBuilder.Create(new FileInfo(path), n, driftLevels,step );
             }
             catch (Exception e)
             {
@@ -124,10 +140,49 @@ namespace ProtocolCreator.ConsoleApp
                 return;
             }
             Console.WriteLine($"Drift segments saved to '{path}'.");
-
+            var p = new ProcessStartInfo(Path.Combine(workingDir.FullName))
+            {
+                UseShellExecute = true,
+            };
+            Process.Start(p);
 
 
 
         }
+
+        private static DirectoryInfo ReadWorkingDirectory(string? address)
+        {
+            if (string.IsNullOrWhiteSpace(address))
+            {
+                return new DirectoryInfo(Environment.CurrentDirectory);
+            }
+
+            DirectoryInfo dir;
+            if (Path.IsPathRooted(address))
+            {
+                dir = new DirectoryInfo(address);
+                if (dir.Exists)
+                {
+                    return dir;
+                }
+
+                Console.WriteLine($"Warning: Absolute path '{address}' does not exist. Using current directory.");
+                return new DirectoryInfo(Environment.CurrentDirectory);
+            }
+
+            var relativePath = Path.Combine(Environment.CurrentDirectory, address);
+            dir = new DirectoryInfo(relativePath);
+            if (dir.Exists)
+            {
+                return dir;
+            }
+
+            Console.WriteLine($"Warning: Relative path '{address}' does not exist. Using current directory.");
+            return new DirectoryInfo(Environment.CurrentDirectory);
+        }
+        
     }
+
+
+    
 }
