@@ -102,6 +102,7 @@ public class Plotter
         ss.MarkerFillColor= Colors.C3;
         pp.ScaleFactor = 4;
         pp.SavePng(file.FullName, 4 * 900, 4 * 900);
+        pp.SaveSvg(Path.GetFileNameWithoutExtension(file.FullName)+".svg", 4 * 900, 4 * 900);
     }
 
 }
