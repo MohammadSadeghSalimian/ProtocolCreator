@@ -53,8 +53,16 @@ namespace ProtocolCreator.Infrastructures
             var elasticNegative = rows[3].Cell(2).GetValue<double>();
             var plasticPositive = rows[4].Cell(2).GetValue<double>();
             var plasticNegative = rows[5].Cell(2).GetValue<double>();
+            var positivePlasticUnloading = rows[6].Cell(2).GetValue<double>();
+            var negativePlasticUnloading = rows[7].Cell(2).GetValue<double>();
+            var positiveElasticUnloading = rows[8].Cell(2).GetValue<double>();
+            var negativeElasticUnloading = rows[9].Cell(2).GetValue<double>();
+            var pp = new CoefficientDirectionContainer(plasticPositive, elasticPositive, positivePlasticUnloading,
+                positiveElasticUnloading);
+            var nn= new CoefficientDirectionContainer(plasticNegative, elasticNegative, negativePlasticUnloading,
+                negativeElasticUnloading);
 
-            var coefficients = new CoefficientContainer(elasticPositive, elasticNegative, plasticPositive, plasticNegative);
+            var coefficients = new CoefficientContainer(pp,nn);
             var aa = new AnalysisInformation(rebarYieldDrift, effectiveDepth, coefficients);
             return aa;
         }

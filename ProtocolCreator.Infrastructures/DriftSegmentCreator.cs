@@ -67,13 +67,23 @@ public class DriftSegmentCreator : IDriftSegmentCreator
         sheet2.Cell(2, 1).Value = "Effective depth";
         sheet2.Cell(2, 2).Value = 750;
         sheet2.Cell(3, 1).Value = "Elastic Positive";
-        sheet2.Cell(3, 2).Value = 0.225;
+        sheet2.Cell(3, 2).Value = 0.293;
         sheet2.Cell(4, 1).Value = "Elastic Negative";
-        sheet2.Cell(4, 2).Value = 0.275;
+        sheet2.Cell(4, 2).Value = 0.293;
         sheet2.Cell(5, 1).Value = "Plastic Positive";
-        sheet2.Cell(5, 2).Value = 0.425;
+        sheet2.Cell(5, 2).Value = 0.48;
         sheet2.Cell(6, 1).Value = "Plastic Negative";
-        sheet2.Cell(6, 2).Value = 0.475;
+        sheet2.Cell(6, 2).Value = 0.48;
+        sheet2.Cell(7, 1).Value = "Positive Plastic Unloading";
+        sheet2.Cell(7, 2).Value = 0.267;
+        sheet2.Cell(8, 1).Value = "Negative Plastic Unloading";
+        sheet2.Cell(8, 2).Value = 0.267;
+
+        sheet2.Cell(9, 1).Value = "Positive Elastic Unloading";
+        sheet2.Cell(9, 2).Value = 0.293;
+        sheet2.Cell(10, 1).Value = "Negative Elastic Unloading";
+        sheet2.Cell(10, 2).Value = 0.293;
+
 
         workbook.SaveAs(file.FullName);
     }

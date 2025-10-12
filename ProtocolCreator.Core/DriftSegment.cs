@@ -1,4 +1,6 @@
-﻿namespace ProtocolCreator.Core;
+﻿using ProtocolCreator.Core.NewDesign;
+
+namespace ProtocolCreator.Core;
 
 public class DriftSegment(double start, double end, double unsignedStep)
 {

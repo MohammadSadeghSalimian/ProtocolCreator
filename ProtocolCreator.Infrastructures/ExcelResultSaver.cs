@@ -1,5 +1,7 @@
-﻿using ClosedXML.Excel;
+﻿using System.Drawing;
+using ClosedXML.Excel;
 using ProtocolCreator.Core;
+using ProtocolCreator.Core.NewDesign;
 
 namespace ProtocolCreator.Infrastructures;
 
@@ -83,16 +85,16 @@ public class ExcelResultSaver:IResultSaver
             switch (state)
             {
                 case CycleState.PL:
-                    fillColor = XLColor.GrannySmithApple;
+                    fillColor = XLColor.FromHtml("#ebffef");
                     break;
                 case CycleState.PU:
-                    fillColor = XLColor.ColumbiaBlue;
+                    fillColor = XLColor.FromHtml("#e1f2fc");
                     break;
                 case CycleState.NL:
-                    fillColor = XLColor.BrilliantLavender;
+                    fillColor = XLColor.FromHtml("#faebfc");
                     break;
                 case CycleState.NU:
-                    fillColor = XLColor.BubbleGum;
+                    fillColor = XLColor.FromHtml("#fcf2eb");
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();

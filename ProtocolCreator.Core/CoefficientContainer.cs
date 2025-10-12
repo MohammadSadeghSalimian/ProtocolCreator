@@ -1,16 +1,22 @@
 ﻿namespace ProtocolCreator.Core;
 
-public class CoefficientContainer(
-    double positiveElastic,
-    double negativeElastic,
-    double positivePlastic,
-    double negativePlastic)
+public class CoefficientContainer(CoefficientDirectionContainer positive, CoefficientDirectionContainer negative)
 {
-    public double PositivePlastic { get;  } = positivePlastic;
-    public double NegativePlastic { get; } = negativePlastic;
-    public double PositiveElastic { get; } = positiveElastic;
-    public double NegativeElastic { get; } = negativeElastic;
+   
+    public CoefficientDirectionContainer Positive { get; } = positive;
 
-        
-        
+    public CoefficientDirectionContainer Negative { get; } = negative;
+}
+
+
+public class CoefficientDirectionContainer(
+    double plasticLoading,
+    double elasticLoading,
+    double plasticUnloading,
+    double elasticUnloading)
+{
+    public double PlasticLoading { get;  } = plasticLoading;
+    public double ElasticLoading { get;  } = elasticLoading;
+    public double PlasticUnloading { get; } = plasticUnloading;
+    public double ElasticUnloading { get; } = elasticUnloading;
 }

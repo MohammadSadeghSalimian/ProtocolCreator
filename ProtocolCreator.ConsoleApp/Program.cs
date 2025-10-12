@@ -42,10 +42,10 @@ namespace ProtocolCreator.ConsoleApp
             Console.WriteLine("This program calculates drift segments and saves results to an Excel file.");
             Console.WriteLine("Make sure you have 'DriftSegments.xlsx' in the current directory.");
             Console.WriteLine("The results will be saved to 'Results.xlsx' in the current directory.");
-            Console.WriteLine("Press any key to start...");
-            Console.ReadKey();
             Console.WriteLine("Enter the address or the name of the working folder: ");
             var address = Console.ReadLine();
+            Console.WriteLine("Press any key to start...");
+            Console.ReadKey();
             var workingDir = ReadWorkingDirectory(address);
             Console.WriteLine("Started!");
             try
@@ -56,7 +56,7 @@ namespace ProtocolCreator.ConsoleApp
                 var driftSegments = aa.LoadDriftSegments();
                 var info = aa.LoadAnalysis();
                 aa.Close();
-                var engine = new Engine(driftSegments, info);
+                var engine = new OldEngine2(driftSegments, info);
                 engine.Calculate();
 
                 var excelSaver = new ExcelResultSaver();

@@ -1,4 +1,4 @@
-﻿namespace ProtocolCreator.Core;
+﻿namespace ProtocolCreator.Core.NewDesign;
 
 public enum Direction:byte
 {

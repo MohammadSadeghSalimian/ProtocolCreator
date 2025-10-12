@@ -1,5 +1,8 @@
-﻿namespace ProtocolCreator.Core;
+﻿using System.Diagnostics;
 
+namespace ProtocolCreator.Core;
+
+[DebuggerDisplay("{Drift.Start}->{Drift.End}")]
 public class Delta(int id, double cycle, DeltaDrift drift, DeltaElongation elongation, SectionCondition section, DriftSegment segment)
 {
     public int Id { get; } = id;

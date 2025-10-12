@@ -1,4 +1,6 @@
-﻿namespace ProtocolCreator.Core
+﻿using ProtocolCreator.Core.NewDesign;
+
+namespace ProtocolCreator.Core
 {
     public static class Extensions
     {
@@ -64,8 +66,8 @@
 
         public static ResidualElongations GetResidualElongation(this CoefficientContainer coefficientContainer,double effectiveDepth,double dy)
         {
-            var res = new ResidualElongations(coefficientContainer.PositiveElastic * dy * effectiveDepth,
-                coefficientContainer.NegativeElastic * dy * effectiveDepth);
+            var res = new ResidualElongations(coefficientContainer.Positive.ElasticLoading * dy * effectiveDepth,
+                coefficientContainer.Negative.ElasticLoading * dy * effectiveDepth);
             return res;
         }
 

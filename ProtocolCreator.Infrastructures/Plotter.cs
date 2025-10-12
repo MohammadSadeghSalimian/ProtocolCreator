@@ -14,7 +14,6 @@ public class Plotter
 
         var p1 = new Plot();
 
-
         var gg = deltas.GroupBy(x => x.Segment.CycleState).ToDictionary(x => x.Key, x => x.ToList());
 
         var s1 = p1.Add.ScatterLine(
@@ -22,26 +21,30 @@ public class Plotter
             .Concat(deltas.Select(x => new Coordinates(x.Cycle, x.Drift.End)))
             .ToArray()
 );
-        s1.Axes.YAxis = p1.Axes.Left;
+
+        s1.Axes.YAxis = p1.Axes.Right;
         s1.LineWidth = 1;
-        s1.MarkerStyle.Shape = MarkerShape.None;
+        s1.MarkerStyle.Shape = MarkerShape.FilledCircle;
+        s1.MarkerSize = 6;
         s1.Color = Colors.Gray;
+        s1.MarkerFillColor = Colors.Black;
         s1.LineWidth = 2;
         s1.LinePattern = LinePattern.Solid;
+        s1.LegendText="Plastic hinge rotation";
         p1.Grid.IsVisible = true;
-
+        
 
         p1.Axes.Title.Label.FontName = "Times New Roman";
 
-        p1.Axes.Left.Label.Text = "Plastic hinge rotation (%)";
+        p1.Axes.Right.Label.Text = "Plastic hinge rotation (%)";
         p1.Axes.Bottom.Label.Text = "Cycle";
-        p1.Axes.Right.Label.Text = "Elongation (mm)";
+        p1.Axes.Left.Label.Text = "Elongation (mm)";
 
         p1.Axes.Bottom.Label.FontName = "Times New Roman";
         p1.Axes.Left.Label.FontName = "Times New Roman";
-       
 
-        var colors = new[] { Colors.C0, Colors.C1, Colors.C2, Colors.C3, Colors.C4 };
+
+   
         //foreach (var pair in gg)
         //{
         //    var sx = p1.Add.ScatterPoints(pair.Value.Select(x => new Coordinates(x.Cycle, x.Drift.End)).ToArray());
@@ -58,25 +61,28 @@ public class Plotter
             (new[] { new Coordinates(0, 0) })
             .Concat(
             deltas.Select(x => new Coordinates(x.Cycle, x.Elongation.End))).ToArray());
-        s2.Axes.YAxis = p1.Axes.Right;
-
-        s2.LineWidth = 1;
+        s2.Axes.YAxis = p1.Axes.Left;
+        s2.Color = Colors.C0;
+        s2.MarkerFillColor = Colors.C3;
+        s2.MarkerSize = 8;
+        s2.LineWidth = 2;
         s2.MarkerStyle.Shape = MarkerShape.FilledCircle;
-        s2.Color = Colors.Black;
-        
+        s2.LegendText="Elongation";
+
+        p1.ShowLegend();
 
 
-        var k = 0;
-        foreach (var pair in gg)
-        {
-            var sx = p1.Add.ScatterPoints(pair.Value.Select(x => new Coordinates(x.Cycle, x.Elongation.End)).ToArray());
-            sx.Axes.YAxis = p1.Axes.Right;
-            sx.LineWidth = 0;
-            sx.MarkerStyle.MarkerColor = colors[k % colors.Length];
-            sx.MarkerSize = 6;
-            sx.MarkerShape = MarkerShape.FilledCircle;
-            k++;
-        }
+        //var k = 0;
+        //foreach (var pair in gg)
+        //{
+        //    var sx = p1.Add.ScatterPoints(pair.Value.Select(x => new Coordinates(x.Cycle, x.Elongation.End)).ToArray());
+        //    sx.Axes.YAxis = p1.Axes.Right;
+        //    sx.LineWidth = 0;
+        //    sx.MarkerStyle.MarkerColor = colors[k % colors.Length];
+        //    sx.MarkerSize = 6;
+        //    sx.MarkerShape = MarkerShape.FilledCircle;
+        //    k++;
+        //}
         p1.ScaleFactor = 4;
         //p2.ScaleFactor = 4;
 
@@ -102,8 +108,12 @@ public class Plotter
         ss.MarkerFillColor= Colors.C3;
         pp.ScaleFactor = 4;
         pp.SavePng(file.FullName, 4 * 900, 4 * 900);
-        pp.SaveSvg(Path.GetFileNameWithoutExtension(file.FullName)+".svg", 4 * 900, 4 * 900);
+
+        pp.SaveSvg(Path.ChangeExtension(file.FullName, ".svg"), 4 * 900, 4 * 900);
+
+     
         
+
     }
 
 }
